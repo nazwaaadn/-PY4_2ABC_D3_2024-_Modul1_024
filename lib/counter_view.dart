@@ -72,8 +72,20 @@ class _CounterViewState extends State<CounterView> {
                 itemCount: _controller.history.length,
                 itemBuilder: (context, index) {
                   final item = _controller.history[index];
+                  Color textColor = Colors.black;
+                  if (item.action.contains("menambah")) {
+                    textColor = Colors.green;
+                  } else if (item.action.contains("mengurangi")) {
+                    textColor = Colors.red;
+                  }
                   return ListTile(
-                    title: Text("${item.action} → ${item.value}"),
+                    title: Text(
+                      "${item.action} → ${item.value}",
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     subtitle: Text(_formatTime(item.time)),
                   );
                 },
