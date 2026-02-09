@@ -111,11 +111,36 @@ class _CounterViewState extends State<CounterView> {
           const SizedBox(width: 10),
           FloatingActionButton(
             heroTag: 'reset',
-            onPressed: () => setState(() => _controller.reset()),
+            onPressed: _resetPopUp,
             child: const Icon(Icons.refresh),
           ),
         ],
       ),
+    );
+  }
+
+  void _resetPopUp() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Konfirmasi Reset"),
+          content: Text("Apakah kamu yakin ingin mereset?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Batal"),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() => _controller.reset());
+                Navigator.pop(context);
+              },
+              child: Text("OK"),
+            ),
+          ],
+        );
+      },
     );
   }
 }
