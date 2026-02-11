@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'counter_controller.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 
 class CounterView extends StatefulWidget {
   const CounterView({super.key});
@@ -19,50 +20,69 @@ class _CounterViewState extends State<CounterView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("LogBook: Versi SRP")),
+      appBar: AppBar(
+        title: const Text("LogBook: Versi SRP"),
+        backgroundColor: const Color.fromARGB(
+          255,
+          0,
+          38,
+          77,
+        ), // biru navy gelap
+
+        foregroundColor: Colors.white, // ganti warna teks & icon
+      ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const SizedBox(height: 50),
             const Text("Total Hitungan:"),
             Text('${_controller.value}', style: const TextStyle(fontSize: 40)),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
 
-            // TEXT FIELD TANPA controller:
-            SizedBox(
-              width: 200,
-              child: TextField(
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: "Masukkan angka",
-                  border: OutlineInputBorder(),
+            Column(
+              children: [
+                Slider(
+                  value: _controller.step.toDouble(),
+                  min: 0,
+                  max: 100,
+                  divisions: 100,
+                  label: _controller.step.toString(),
+                  activeColor: const Color.fromARGB(
+                    255,
+                    0,
+                    38,
+                    77,
+                  ), // warna bagian yang sudah digeser
+                  inactiveColor:
+                      Colors.grey[300], // warna track yang belum digeser
+                  onChanged: (double value) {
+                    setState(() {
+                      _controller.setStep(value.toInt());
+                    });
+                  },
                 ),
-                onChanged: (value) {
-                  _inputValue = value;
-                },
+                const SizedBox(height: 10),
+                Text(
+                  "Step saat ini: ${_controller.step}",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w400,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 50),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: const Text(
+                  "Riwayat Aktivitas",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
               ),
-            ),
-
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                final input = int.tryParse(_inputValue);
-                if (input != null) {
-                  setState(() => _controller.setStep(input));
-                }
-              },
-              child: const Text("Set Nilai"),
-            ),
-
-            const SizedBox(height: 16),
-
-            Text("Step saat ini: ${_controller.step}"),
-
-            const Divider(height: 30),
-
-            const Text(
-              "Riwayat Aktivitas",
-              style: TextStyle(fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 10),
@@ -73,20 +93,57 @@ class _CounterViewState extends State<CounterView> {
                 itemBuilder: (context, index) {
                   final item = _controller.history[index];
                   Color textColor = Colors.black;
+                  IconData iconData = Icons.info; // default icon
+
                   if (item.action.contains("menambah")) {
                     textColor = Colors.green;
+                    iconData = Icons.add_circle; // icon untuk menambah
                   } else if (item.action.contains("mengurangi")) {
                     textColor = Colors.red;
+                    iconData = Icons.remove_circle; // icon untuk mengurangi
                   }
-                  return ListTile(
-                    title: Text(
-                      "${item.action} → ${item.value}",
-                      style: TextStyle(
-                        color: textColor,
-                        fontWeight: FontWeight.w600,
+
+                  return Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(iconData, color: textColor, size: 16),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  "${item.action} ${item.value}",
+                                  style: TextStyle(
+                                    color: textColor,
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _formatTime(item.time),
+                            style: const TextStyle(fontSize: 10),
+                          ),
+                        ],
                       ),
                     ),
-                    subtitle: Text(_formatTime(item.time)),
                   );
                 },
               ),
@@ -94,25 +151,31 @@ class _CounterViewState extends State<CounterView> {
           ],
         ),
       ),
-      floatingActionButton: Row(
-        mainAxisSize: MainAxisSize.min,
+      floatingActionButton: SpeedDial(
+        icon: Icons.menu, // icon FAB utama
+        activeIcon: Icons.close, // icon saat terbuka
+        backgroundColor: const Color(0xFFFA9D1C),
+        foregroundColor: Colors.white,
+        closeManually: false,
+        spacing: 10,
         children: [
-          FloatingActionButton(
-            heroTag: 'decrement',
-            onPressed: () => setState(() => _controller.decrement()),
+          SpeedDialChild(
             child: const Icon(Icons.remove),
+            backgroundColor: Colors.red,
+            // label: "Decrement",
+            onTap: () => setState(() => _controller.decrement()),
           ),
-          const SizedBox(width: 10),
-          FloatingActionButton(
-            heroTag: 'increment',
-            onPressed: () => setState(() => _controller.increment()),
+          SpeedDialChild(
             child: const Icon(Icons.add),
+            backgroundColor: Colors.green,
+            // label: "Increment",
+            onTap: () => setState(() => _controller.increment()),
           ),
-          const SizedBox(width: 10),
-          FloatingActionButton(
-            heroTag: 'reset',
-            onPressed: _resetPopUp,
+          SpeedDialChild(
             child: const Icon(Icons.refresh),
+            backgroundColor: const Color(0xFFFA9D1C),
+            // label: "Reset",
+            onTap: _resetPopUp,
           ),
         ],
       ),
@@ -124,19 +187,31 @@ class _CounterViewState extends State<CounterView> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("Konfirmasi Reset"),
-          content: Text("Apakah kamu yakin ingin mereset?"),
+          title: const Text("Konfirmasi Reset"),
+          content: const Text("Apakah kamu yakin ingin mereset?"),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text("Batal"),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.black, // Batal merah
+              ),
+              child: const Text("Batal"),
             ),
-            TextButton(
+            FilledButton(
               onPressed: () {
                 setState(() => _controller.reset());
                 Navigator.pop(context);
               },
-              child: Text("OK"),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color.fromARGB(
+                  255,
+                  250,
+                  157,
+                  28,
+                ), // OK hijau
+                foregroundColor: Colors.white,
+              ),
+              child: const Text("OK"),
             ),
           ],
         );
