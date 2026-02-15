@@ -1,5 +1,7 @@
+// main.dart
 import 'package:flutter/material.dart';
-import 'counter_view.dart';
+// Sesuaikan path import dengan struktur folder baru
+import 'package:logbook_app_001/features/onboarding/onboarding_view.dart';
 
 void main() {
   runApp(const MyApp());
@@ -10,8 +12,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: CounterView(),
+    return MaterialApp(
+      title: 'LogBook App',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+      ),
+      home: const OnboardingView(),
     );
   }
 }
