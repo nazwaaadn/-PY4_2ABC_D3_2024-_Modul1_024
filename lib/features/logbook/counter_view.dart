@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'counter_controller.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:logbook_app_001/features/onboarding/onboarding_view.dart';
 
 class CounterView extends StatefulWidget {
   // Tambahkan variabel final untuk menampung nama
@@ -13,14 +14,28 @@ class CounterView extends StatefulWidget {
   State<CounterView> createState() => _CounterViewState();
 }
 
-
 class _CounterViewState extends State<CounterView> {
-  final CounterController _controller = CounterController();
+  late CounterController _controller;
   String _inputValue = "";
   String _formatTime(DateTime time) {
     return "${time.hour.toString().padLeft(2, '0')}:"
         "${time.minute.toString().padLeft(2, '0')}:"
         "${time.second.toString().padLeft(2, '0')}";
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = CounterController(widget.username);
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    await _controller.loadLastValue();
+    await _controller.loadHistory();
+    if (!mounted) return;
+
+    setState(() {});
   }
 
   @override
@@ -37,11 +52,48 @@ class _CounterViewState extends State<CounterView> {
 
         foregroundColor: Colors.white,
         actions: [
-          // Kita siapkan tombol logout di sini untuk Fase 3 nanti
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
-              // Logika logout nanti di Fase 3
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: const Text("Konfirmasi Logout"),
+                    content: const Text("Apakah Anda yakin ingin keluar?"),
+                    actions: [
+                      // Tombol Batal
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context); // Tutup dialog saja
+                        },
+                        child: const Text("Batal"),
+                      ),
+
+                      // Tombol Ya, Logout
+                      TextButton(
+                        onPressed: () {
+                          // Tutup dialog dulu
+                          Navigator.pop(context);
+
+                          // Hapus semua halaman & kembali ke Onboarding
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const OnboardingView(),
+                            ),
+                            (route) => false,
+                          );
+                        },
+                        child: const Text(
+                          "Ya, Keluar",
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
             },
           ),
         ],
@@ -179,13 +231,22 @@ class _CounterViewState extends State<CounterView> {
             child: const Icon(Icons.remove),
             backgroundColor: Colors.red,
             // label: "Decrement",
-            onTap: () => setState(() => _controller.decrement()),
+            onTap: () async {
+              setState(() {
+                _controller.decrement();
+              });
+
+              await _controller.saveLastValue(_controller.value);
+            },
           ),
           SpeedDialChild(
             child: const Icon(Icons.add),
             backgroundColor: Colors.green,
             // label: "Increment",
-            onTap: () => setState(() => _controller.increment()),
+            onTap: () async {
+              setState(() => _controller.increment());
+              await _controller.saveLastValue(_controller.value);
+            },
           ),
           SpeedDialChild(
             child: const Icon(Icons.refresh),
@@ -208,15 +269,25 @@ class _CounterViewState extends State<CounterView> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
+             
               style: TextButton.styleFrom(
                 foregroundColor: Colors.black, // Batal merah
               ),
               child: const Text("Batal"),
             ),
             FilledButton(
-              onPressed: () {
-                setState(() => _controller.reset());
-                Navigator.pop(context);
+              // onPressed: () {
+              //   setState(() => _controller.reset());
+              //   Navigator.pop(context);
+              // },
+              onPressed: () async {
+                Navigator.pop(context); 
+
+                setState(() {
+                  _controller.reset();
+                });
+
+                await _controller.saveLastValue(_controller.value);
               },
               style: FilledButton.styleFrom(
                 backgroundColor: const Color.fromARGB(

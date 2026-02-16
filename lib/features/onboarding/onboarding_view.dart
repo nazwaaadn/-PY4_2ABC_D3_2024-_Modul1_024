@@ -16,7 +16,7 @@ class _OnboardingViewState extends State<OnboardingView> {
       step++;
     });
 
-    if (step > 3) {
+    if (step > 2) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const LoginView()),

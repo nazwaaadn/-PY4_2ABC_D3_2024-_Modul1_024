@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class HistoryItem {
   final String action;
@@ -16,6 +17,9 @@ class CounterController {
   int _counter = 0;
   int _step = 1;
   final List<HistoryItem> _history = [];
+  final String username;
+
+  CounterController(this.username);
 
   int get value => _counter;
   int get step => _step;
@@ -23,15 +27,15 @@ class CounterController {
 
   Future<void> saveLastValue(int value) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('last_counter', value); 
-    // 'last_counter' adalah Kunci (Key) untuk memanggil data nanti
+    await prefs.setInt('last_counter_$username', value); 
+    // 'last_counter_${username}' adalah Kunci (Key) untuk memanggil data nanti
   }
 
-  Future<int> loadLastValue() async {
-  final prefs = await SharedPreferences.getInstance();
-  // Ambil nilai berdasarkan Key, jika kosong (null) berikan nilai default 0
-  return prefs.getInt('last_counter') ?? 0;
-}
+  Future<void> loadLastValue() async {
+    final prefs = await SharedPreferences.getInstance();
+    _counter = prefs.getInt('last_counter_$username') ?? 0;
+  }
+
 
 
   void setStep(int step) {
@@ -67,5 +71,48 @@ class CounterController {
     if (_history.length > 5) {
       _history.removeLast();
     }
+    saveHistory();
   }
+
+  Future<void> saveHistory() async {
+  final prefs = await SharedPreferences.getInstance();
+
+  // Ubah List<HistoryItem> jadi List<Map>
+  List<Map<String, dynamic>> historyMap = _history.map((item) {
+    return {
+      "action": item.action,
+      "value": item.value,
+      "time": item.time.toIso8601String(),
+    };
+  }).toList();
+
+  // Encode ke JSON
+  String historyJson = jsonEncode(historyMap);
+
+  await prefs.setString('history_data', historyJson);
+}
+
+Future<void> loadHistory() async {
+  final prefs = await SharedPreferences.getInstance();
+
+  String? historyJson = prefs.getString('history_data');
+
+  if (historyJson != null) {
+    List<dynamic> decoded = jsonDecode(historyJson);
+
+    _history.clear();
+
+    for (var item in decoded) {
+      _history.add(
+        HistoryItem(
+          action: item['action'],
+          value: item['value'],
+          time: DateTime.parse(item['time']),
+        ),
+      );
+    }
+  }
+}
+
+
 }
