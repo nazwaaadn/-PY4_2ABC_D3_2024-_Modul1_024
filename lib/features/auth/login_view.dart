@@ -91,7 +91,7 @@ class _LoginViewState extends State<LoginView> {
             ),
             TextField(
               controller: _passController,
-              obscureText: true, // Menyembunyikan teks password
+              obscureText: _isPasswordHidden, // Menyembunyikan teks password
               decoration: InputDecoration(
                 labelText: "Password",
                 suffixIcon: IconButton(
@@ -101,6 +101,7 @@ class _LoginViewState extends State<LoginView> {
                   onPressed: () {
                     setState(() {
                       _isPasswordHidden = !_isPasswordHidden;
+                      
                     });
                   },
                 ),
