@@ -1,3 +1,5 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 class HistoryItem {
   final String action;
   final int value;
@@ -18,6 +20,19 @@ class CounterController {
   int get value => _counter;
   int get step => _step;
   List<HistoryItem> get history => List.unmodifiable(_history);
+
+  Future<void> saveLastValue(int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('last_counter', value); 
+    // 'last_counter' adalah Kunci (Key) untuk memanggil data nanti
+  }
+
+  Future<int> loadLastValue() async {
+  final prefs = await SharedPreferences.getInstance();
+  // Ambil nilai berdasarkan Key, jika kosong (null) berikan nilai default 0
+  return prefs.getInt('last_counter') ?? 0;
+}
+
 
   void setStep(int step) {
     if (step > 0) _step = step;
