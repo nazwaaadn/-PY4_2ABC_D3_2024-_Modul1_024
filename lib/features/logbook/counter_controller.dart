@@ -6,11 +6,7 @@ class HistoryItem {
   final int value;
   final DateTime time;
 
-  HistoryItem({
-    required this.action,
-    required this.value,
-    required this.time,
-  });
+  HistoryItem({required this.action, required this.value, required this.time});
 }
 
 class CounterController {
@@ -27,7 +23,7 @@ class CounterController {
 
   Future<void> saveLastValue(int value) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('last_counter_$username', value); 
+    await prefs.setInt('last_counter_$username', value);
     // 'last_counter_${username}' adalah Kunci (Key) untuk memanggil data nanti
   }
 
@@ -35,8 +31,6 @@ class CounterController {
     final prefs = await SharedPreferences.getInstance();
     _counter = prefs.getInt('last_counter_$username') ?? 0;
   }
-
-
 
   void setStep(int step) {
     if (step > 0) _step = step;
@@ -60,12 +54,9 @@ class CounterController {
   }
 
   void _addHistory(String action, int value) {
-    _history.insert(0, 
-      HistoryItem(
-        action: action,
-        value: value,
-        time: DateTime.now()
-      ),
+    _history.insert(
+      0,
+      HistoryItem(action: action, value: value, time: DateTime.now()),
     );
 
     if (_history.length > 5) {
@@ -75,44 +66,42 @@ class CounterController {
   }
 
   Future<void> saveHistory() async {
-  final prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
 
-  // Ubah List<HistoryItem> jadi List<Map>
-  List<Map<String, dynamic>> historyMap = _history.map((item) {
-    return {
-      "action": item.action,
-      "value": item.value,
-      "time": item.time.toIso8601String(),
-    };
-  }).toList();
+    // Ubah List<HistoryItem> jadi List<Map>
+    List<Map<String, dynamic>> historyMap = _history.map((item) {
+      return {
+        "action": item.action,
+        "value": item.value,
+        "time": item.time.toIso8601String(),
+      };
+    }).toList();
 
-  // Encode ke JSON
-  String historyJson = jsonEncode(historyMap);
+    // Encode ke JSON
+    String historyJson = jsonEncode(historyMap);
 
-  await prefs.setString('history_data', historyJson);
-}
+    await prefs.setString('history_data_$username', historyJson);
+  }
 
-Future<void> loadHistory() async {
-  final prefs = await SharedPreferences.getInstance();
+  Future<void> loadHistory() async {
+    final prefs = await SharedPreferences.getInstance();
 
-  String? historyJson = prefs.getString('history_data');
+    String? historyJson = prefs.getString('history_data_$username');
 
-  if (historyJson != null) {
-    List<dynamic> decoded = jsonDecode(historyJson);
+    if (historyJson != null) {
+      List<dynamic> decoded = jsonDecode(historyJson);
 
-    _history.clear();
+      _history.clear();
 
-    for (var item in decoded) {
-      _history.add(
-        HistoryItem(
-          action: item['action'],
-          value: item['value'],
-          time: DateTime.parse(item['time']),
-        ),
-      );
+      for (var item in decoded) {
+        _history.add(
+          HistoryItem(
+            action: item['action'],
+            value: item['value'],
+            time: DateTime.parse(item['time']),
+          ),
+        );
+      }
     }
   }
-}
-
-
 }
