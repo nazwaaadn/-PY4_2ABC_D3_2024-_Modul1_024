@@ -16,6 +16,10 @@ class _LogViewState extends State<LogView> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
 
+  String selectedCategory = "Pribadi";
+
+  final List<String> categoryItems = ["Pribadi", "Kuliah", "Kerja", "Lainnya"];
+
   final Color primaryNavy = const Color(0xFF00264D);
   final Color accentOrange = const Color(0xFFFA9D1C);
   final Color bgColor = const Color(0xFFF8F9FE);
@@ -29,6 +33,12 @@ class _LogViewState extends State<LogView> {
 
   void _syncFilteredLogs() {
     _controller.searchLog(_searchController.text);
+  }
+
+  int _findOriginalLogIndex(LogModel log) {
+    return _controller.logsNotifier.value.indexWhere(
+      (item) => item.date == log.date,
+    );
   }
 
   @override
@@ -175,7 +185,10 @@ class _LogViewState extends State<LogView> {
                           child: const Icon(Icons.delete, color: Colors.white),
                         ),
                         onDismissed: (direction) {
-                          _controller.removeLog(index);
+                          final originalIndex = _findOriginalLogIndex(log);
+                          if (originalIndex != -1) {
+                            _controller.removeLog(originalIndex);
+                          }
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text("Catatan dihapus")),
                           );
@@ -217,12 +230,25 @@ class _LogViewState extends State<LogView> {
                                 color: primaryNavy,
                               ),
                             ),
+
                             subtitle: Padding(
                               padding: const EdgeInsets.only(top: 4),
-                              child: Text(
-                                log.description,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    log.description,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    log.category,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             trailing: Wrap(
@@ -233,15 +259,20 @@ class _LogViewState extends State<LogView> {
                                     Icons.edit_rounded,
                                     color: primaryNavy,
                                   ),
-                                  onPressed: () =>
-                                      _showEditLogDialog(index, log),
+                                  onPressed: () => _showEditLogDialog(log),
                                 ),
                                 IconButton(
                                   icon: const Icon(
                                     Icons.delete_rounded,
                                     color: Colors.red,
                                   ),
-                                  onPressed: () => _controller.removeLog(index),
+                                  onPressed: () {
+                                    final originalIndex =
+                                        _findOriginalLogIndex(log);
+                                    if (originalIndex != -1) {
+                                      _controller.removeLog(originalIndex);
+                                    }
+                                  },
                                 ),
                               ],
                             ),
@@ -311,6 +342,7 @@ class _LogViewState extends State<LogView> {
   }
 
   void _showAddLogDialog() {
+    selectedCategory = "Pribadi";
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -327,9 +359,21 @@ class _LogViewState extends State<LogView> {
               controller: _contentController,
               decoration: const InputDecoration(hintText: "Isi Deskripsi"),
             ),
-            TextField(
-              // controller: _contentController,
-              decoration: const InputDecoration(hintText: "Kategori"),
+            Padding(padding: const EdgeInsets.only(top: 10)),
+            DropdownButtonFormField<String>(
+              value: selectedCategory,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: "Kategori",
+              ),
+              items: categoryItems.map((item) {
+                return DropdownMenuItem(value: item, child: Text(item));
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  selectedCategory = value!;
+                });
+              },
             ),
           ],
         ),
@@ -348,6 +392,7 @@ class _LogViewState extends State<LogView> {
               _controller.addLog(
                 _titleController.text,
                 _contentController.text,
+                selectedCategory,
               );
 
               // Bersihkan input dan tutup dialog
@@ -362,51 +407,77 @@ class _LogViewState extends State<LogView> {
     );
   }
 
-  void _showEditLogDialog(int index, LogModel log) {
+  void _showEditLogDialog(LogModel log) {
     _titleController.text = log.title;
     _contentController.text = log.description;
+    String editedCategory = log.category;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Edit Catatan"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(hintText: "Judul Catatan"),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text("Edit Catatan"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _titleController,
+                decoration: const InputDecoration(hintText: "Judul Catatan"),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _contentController,
+                decoration: const InputDecoration(hintText: "Isi Deskripsi"),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                value: editedCategory,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: "Kategori",
+                ),
+                items: categoryItems.map((item) {
+                  return DropdownMenuItem(value: item, child: Text(item));
+                }).toList(),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setModalState(() {
+                    editedCategory = value;
+                  });
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Batal"),
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _contentController,
-              decoration: const InputDecoration(hintText: "Isi Deskripsi"),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryNavy,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                final originalIndex = _findOriginalLogIndex(log);
+                if (originalIndex != -1) {
+                  _controller.updateLog(
+                    originalIndex,
+                    _titleController.text,
+                    _contentController.text,
+                    editedCategory,
+                  );
+                }
+                _titleController.clear();
+                _contentController.clear();
+                Navigator.pop(context);
+              },
+              child: const Text("Update"),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Batal"),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryNavy,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              _controller.updateLog(
-                index,
-                _titleController.text,
-                _contentController.text,
-              );
-              _titleController.clear();
-              _contentController.clear();
-              Navigator.pop(context);
-            },
-            child: const Text("Update"),
-          ),
-        ],
       ),
     );
   }

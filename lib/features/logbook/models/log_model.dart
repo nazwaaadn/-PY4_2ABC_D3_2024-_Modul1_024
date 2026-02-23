@@ -3,11 +3,13 @@ class LogModel {
   final String title;
   final String date;
   final String description;
+  final String category; 
 
   LogModel({
     required this.title,
     required this.date,
     required this.description,
+    required this.category,
   });
 
 
@@ -17,6 +19,7 @@ class LogModel {
       title: map['title'],
       date: map['date'],
       description: map['description'],
+      category: (map['category'] ?? 'Lainnya').toString(),
     );
   }
 
@@ -27,6 +30,7 @@ class LogModel {
       'title': title,
       'date': date,
       'description': description,
+      'category': category,
     };
   }
 }
