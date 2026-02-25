@@ -18,11 +18,26 @@ class _LogViewState extends State<LogView> {
 
   String selectedCategory = "Pribadi";
 
-  final List<String> categoryItems = ["Pribadi", "Kuliah", "Kerja", "Lainnya"];
+  final List<String> categoryItems = ["Pribadi", "Kuliah", "Kerja", "Urgent"];
 
   final Color primaryNavy = const Color(0xFF00264D);
   final Color accentOrange = const Color(0xFFFA9D1C);
   final Color bgColor = const Color(0xFFF8F9FE);
+
+  Color _categoryColor(String category) {
+    switch (category) {
+      case "Pribadi":
+        return const Color(0xFF1E88E5);
+      case "Kuliah":
+        return const Color(0xFF43A047);
+      case "Kerja":
+        return const Color(0xFF8E24AA);
+      case "Urgent":
+        return const Color(0xFFE53935);
+      default:
+        return primaryNavy;
+    }
+  }
 
   @override
   void initState() {
@@ -174,6 +189,7 @@ class _LogViewState extends State<LogView> {
                     itemCount: currentLogs.length,
                     itemBuilder: (context, index) {
                       final log = currentLogs[index];
+                      final categoryColor = _categoryColor(log.category);
 
                       return Dismissible(
                         key: Key(log.date),
@@ -196,8 +212,11 @@ class _LogViewState extends State<LogView> {
                         child: Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: categoryColor.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: categoryColor.withOpacity(0.35),
+                            ),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withOpacity(0.05),
@@ -207,6 +226,7 @@ class _LogViewState extends State<LogView> {
                             ],
                           ),
                           child: ListTile(
+                            isThreeLine: true,
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14,
                               vertical: 8,
@@ -214,12 +234,12 @@ class _LogViewState extends State<LogView> {
                             leading: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: accentOrange.withOpacity(0.12),
+                                color: categoryColor.withOpacity(0.18),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 Icons.note_rounded,
-                                color: accentOrange,
+                                color: categoryColor,
                                 size: 20,
                               ),
                             ),
@@ -238,14 +258,15 @@ class _LogViewState extends State<LogView> {
                                 children: [
                                   Text(
                                     log.description,
-                                    maxLines: 1,
+                                    maxLines: 4,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   Text(
                                     log.category,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey,
+                                      color: categoryColor,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ],
