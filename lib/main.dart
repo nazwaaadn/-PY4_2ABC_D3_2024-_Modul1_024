@@ -1,11 +1,19 @@
 // main.dart
 import 'package:flutter/material.dart';
 // Sesuaikan path import dengan struktur folder baru
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:logbook_app_001/features/onboarding/onboarding_view.dart';
 
-void main() {
+
+void main() async {
+  // Wajib untuk operasi asinkron sebelum runApp
+  WidgetsFlutterBinding.ensureInitialized();
+  // Load ENV
+  await dotenv.load(fileName: ".env");
   runApp(const MyApp());
 }
+
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
