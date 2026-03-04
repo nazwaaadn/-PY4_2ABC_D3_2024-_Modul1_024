@@ -148,4 +148,5 @@ class LogController {
   }
 
   void searchLog(String text) {}
+  
 }

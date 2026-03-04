@@ -2,6 +2,7 @@ import 'package:mongo_dart/mongo_dart.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:logbook_app_001/features/logbook/models/log_model.dart';
 import 'package:logbook_app_001/helpers/log_helper.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class MongoService {
   static final MongoService _instance = MongoService._internal();
@@ -28,41 +29,52 @@ class MongoService {
     return _collection!;
   }
 
-  /// Inisialisasi Koneksi ke MongoDB Atlas
+  Future<bool> _checkInternet() async {
+    final connectivity = await Connectivity().checkConnectivity();
+    return connectivity != ConnectivityResult.none;
+  }
+
   Future<void> connect() async {
-    try {
-      final dbUri = dotenv.env['MONGODB_URI'];
-      if (dbUri == null) throw Exception("MONGODB_URI tidak ditemukan di .env");
-
-      _db = await Db.create(dbUri);
-
-      // Timeout 15 detik agar lebih toleran terhadap jaringan seluler
-      await _db!.open().timeout(
-        const Duration(seconds: 15),
-        onTimeout: () {
-          throw Exception(
-            "Koneksi Timeout. Cek IP Whitelist (0.0.0.0/0) atau Sinyal HP.",
-          );
-        },
-      );
-
-      _collection = _db!.collection('logs');
-
+  try {
+    if (!await _checkInternet()) {
       await LogHelper.writeLog(
-        "DATABASE: Terhubung & Koleksi Siap",
-        source: _source,
-        level: 2,
-      );
-    } catch (e) {
-      await LogHelper.writeLog(
-        "DATABASE: Gagal Koneksi - $e",
+        "OFFLINE MODE: Tidak ada koneksi internet.",
         source: _source,
         level: 1,
       );
-      rethrow;
+      throw Exception("Offline Mode - Internet tidak tersedia");
     }
-  }
 
+    final dbUri = dotenv.env['MONGODB_URI'];
+    if (dbUri == null) throw Exception("MONGODB_URI tidak ditemukan di .env");
+
+    _db = await Db.create(dbUri);
+
+    await _db!.open().timeout(
+      const Duration(seconds: 15),
+      onTimeout: () {
+        throw Exception(
+          "Koneksi Timeout. Cek IP Whitelist atau jaringan.",
+        );
+      },
+    );
+
+    _collection = _db!.collection('logs');
+
+    await LogHelper.writeLog(
+      "DATABASE: Terhubung & Koleksi Siap",
+      source: _source,
+      level: 2,
+    );
+  } catch (e) {
+    await LogHelper.writeLog(
+      "DATABASE: Gagal Koneksi - $e",
+      source: _source,
+      level: 1,
+    );
+    rethrow;
+  }
+}
   /// READ: Mengambil data dari Cloud
   Future<List<LogModel>> getLogs() async {
     try {
@@ -200,6 +212,8 @@ class MongoService {
     }
   }
 }
+
+
 
 extension on Map<String, dynamic> {
   bool? get isSuccess => null;

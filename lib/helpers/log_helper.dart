@@ -2,7 +2,6 @@ import 'dart:developer' as dev;
 import 'dart:io'; // TAMBAHKAN INI untuk akses file
 import 'package:intl/intl.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:path_provider/path_provider.dart';
 
 class LogHelper {
   static String? _logsDirectoryPath;
@@ -12,20 +11,8 @@ class LogHelper {
       return Directory(_logsDirectoryPath!);
     }
 
-    String absoluteLogsPath;
-
-    // Cek apakah sedang berjalan di Mobile atau Desktop/Test
-    // Saat Test (flutter test), kita simpan di root proyek (Directory.current.path)
-    // Saat running app di Emulator (Android/iOS), Directory.current gak bisa direwrite sembarangan,
-    // jadi pakai getApplicationDocumentsDirectory()
-    try {
-      final docDir = await getApplicationDocumentsDirectory();
-      absoluteLogsPath = '${docDir.path}${Platform.pathSeparator}logs';
-    } catch (e) {
-      // Fallback untuk desktop / environment di mana path_provider error (misal pas dart test)
-      absoluteLogsPath = '${Directory.current.path}${Platform.pathSeparator}logs';
-    }
-
+    final String absoluteLogsPath =
+        '${Directory.current.path}${Platform.pathSeparator}logs';
     final directory = Directory(absoluteLogsPath);
     if (!await directory.exists()) {
       await directory.create(recursive: true);
