@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:logbook_app_001/features/auth/login_controller.dart';
 import 'package:logbook_app_001/features/alert_helper.dart';
 import 'package:logbook_app_001/features/logbook/log_view.dart';
-import 'package:logbook_app_001/features/logbook/counter_view.dart';
 import 'dart:async';
 
 class LoginView extends StatefulWidget {
@@ -47,7 +45,11 @@ class _LoginViewState extends State<LoginView> {
       _failedAttempts = 0;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => LogView()),
+        MaterialPageRoute(
+          builder: (context) => LogView(
+            currentUser: _controller.getUserData(user),
+          ),
+        ),
       );
     } else {
       setState(() => _failedAttempts++);

@@ -30,72 +30,69 @@ class MongoService {
   }
 
   Future<bool> _checkInternet() async {
-    final connectivity = await Connectivity().checkConnectivity();
-    return connectivity != ConnectivityResult.none;
+    // connectivity_plus v7 returns List<ConnectivityResult>
+    final results = await Connectivity().checkConnectivity();
+    return results.any((r) => r != ConnectivityResult.none);
   }
 
   Future<void> connect() async {
-  try {
-    if (!await _checkInternet()) {
+    try {
+      if (!await _checkInternet()) {
+        await LogHelper.writeLog(
+          "OFFLINE MODE: Tidak ada koneksi internet.",
+          source: _source,
+          level: 1,
+        );
+        throw Exception("Offline Mode - Internet tidak tersedia");
+      }
+
+      final dbUri = dotenv.env['MONGODB_URI'];
+      if (dbUri == null) throw Exception("MONGODB_URI tidak ditemukan di .env");
+
+      _db = await Db.create(dbUri);
+
+      await _db!.open().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw Exception("Koneksi Timeout. Cek IP Whitelist atau jaringan.");
+        },
+      );
+
+      _collection = _db!.collection('logs');
+
       await LogHelper.writeLog(
-        "OFFLINE MODE: Tidak ada koneksi internet.",
+        "DATABASE: Terhubung & Koleksi Siap",
+        source: _source,
+        level: 2,
+      );
+    } catch (e) {
+      await LogHelper.writeLog(
+        "DATABASE: Gagal Koneksi - $e",
         source: _source,
         level: 1,
       );
-      throw Exception("Offline Mode - Internet tidak tersedia");
+      rethrow;
     }
-
-    final dbUri = dotenv.env['MONGODB_URI'];
-    if (dbUri == null) throw Exception("MONGODB_URI tidak ditemukan di .env");
-
-    _db = await Db.create(dbUri);
-
-    await _db!.open().timeout(
-      const Duration(seconds: 15),
-      onTimeout: () {
-        throw Exception(
-          "Koneksi Timeout. Cek IP Whitelist atau jaringan.",
-        );
-      },
-    );
-
-    _collection = _db!.collection('logs');
-
-    await LogHelper.writeLog(
-      "DATABASE: Terhubung & Koleksi Siap",
-      source: _source,
-      level: 2,
-    );
-  } catch (e) {
-    await LogHelper.writeLog(
-      "DATABASE: Gagal Koneksi - $e",
-      source: _source,
-      level: 1,
-    );
-    rethrow;
   }
-}
+
   /// READ: Mengambil data dari Cloud
-  Future<List<LogModel>> getLogs() async {
+  Future<List<LogModel>> getLogs(String teamId) async {
     try {
       final collection = await _getSafeCollection(); // Gunakan jalur aman
 
       await LogHelper.writeLog(
-        "READ: Mulai mengambil data dari Cloud...",
+        "INFO: Fetching data for Team: $teamId",
         source: _source,
         level: 3,
       );
 
-      final List<Map<String, dynamic>> data = await collection.find().toList();
-      await LogHelper.writeLog(
-        "READ: Berhasil mengambil ${data.length} data dari Cloud.",
-        source: _source,
-        level: 2,
-      );
+      final List<Map<String, dynamic>> data = await collection
+          .find(where.eq('teamId', teamId))
+          .toList();
       return data.map((json) => LogModel.fromMap(json)).toList();
     } catch (e) {
       await LogHelper.writeLog(
-        "READ: Gagal mengambil data - $e",
+        "ERROR: Fetch Failed - $e",
         source: _source,
         level: 1,
       );
@@ -143,7 +140,7 @@ class MongoService {
       );
 
       final result = await collection.updateOne(
-        where.id(log.id!),
+        where.id(ObjectId.fromHexString(log.id!)),
         modify
             .set('title', log.title)
             .set('date', log.date)
@@ -151,7 +148,7 @@ class MongoService {
             .set('category', log.category),
       );
 
-      if (result.isSuccess == null || !result.isSuccess! || result.nMatched == 0) {
+      if (!result.isSuccess || result.nMatched == 0) {
         throw Exception("Data tidak ditemukan saat update di Cloud.");
       }
 
@@ -171,7 +168,7 @@ class MongoService {
   }
 
   /// DELETE: Menghapus dokumen
-  Future<void> deleteLog(ObjectId id) async {
+  Future<void> deleteLog(String id) async {
     try {
       final collection = await _getSafeCollection();
       await LogHelper.writeLog(
@@ -180,9 +177,11 @@ class MongoService {
         level: 3,
       );
 
-      final result = await collection.remove(where.id(id));
+      final result = await collection.remove(
+        where.id(ObjectId.fromHexString(id)),
+      );
 
-      if (result.isSuccess == null || !result.isSuccess! || result.nRemoved == 0) {
+      if (result.isSuccess != true || result.nRemoved == 0) {
         throw Exception("Data tidak ditemukan saat delete di Cloud.");
       }
 
@@ -201,6 +200,24 @@ class MongoService {
     }
   }
 
+  /// UPSERT: Insert jika belum ada, update jika sudah ada (anti-duplikasi)
+  Future<void> upsertLog(LogModel log) async {
+    try {
+      final collection = await _getSafeCollection();
+      if (log.id == null) throw Exception("ID Log tidak ada untuk upsert");
+      // save() di mongo_dart: jika dokumen punya _id → replaceOne+upsert
+      await collection.save(log.toMap());
+      await LogHelper.writeLog(
+        "UPSERT: '${log.title}' berhasil disinkronisasi ke Cloud.",
+        source: _source,
+        level: 2,
+      );
+    } catch (e) {
+      await LogHelper.writeLog("UPSERT: Gagal - $e", source: _source, level: 1);
+      rethrow;
+    }
+  }
+
   Future<void> close() async {
     if (_db != null) {
       await _db!.close();
@@ -213,10 +230,8 @@ class MongoService {
   }
 }
 
-
-
 extension on Map<String, dynamic> {
   bool? get isSuccess => null;
-  
+
   get nRemoved => null;
 }

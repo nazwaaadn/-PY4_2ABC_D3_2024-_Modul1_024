@@ -1,50 +1,66 @@
-import 'package:bson/src/classes/object_id.dart';
+import 'package:hive/hive.dart';
+import 'package:mongo_dart/mongo_dart.dart' show ObjectId;
 
+part 'log_model.g.dart';
+
+@HiveType(typeId: 0)
 class LogModel {
-  final ObjectId? id;
+  @HiveField(0)
+  final String? id;
+
+  @HiveField(1)
   final String title;
-  final String date;
+
+  @HiveField(2)
   final String description;
+
+  @HiveField(3)
+  final String date;
+
+  @HiveField(4)
+  final String authorId; // BARU
+
+  @HiveField(5)
+  final String teamId; // BARU
+
+  @HiveField(6)
+  final bool isPublic; // Apakah log ini dapat dilihat semua anggota
+
+  @HiveField(7)
   final String category;
 
   LogModel({
     this.id,
     required this.title,
-    required this.date,
     required this.description,
-    required this.category,
+    required this.date,
+    required this.authorId,
+    required this.teamId,
+    this.isPublic = false,
+    this.category = 'Pribadi',
   });
 
-  // Untuk Tugas HOTS: Konversi Map (JSON) ke Object
+  Map<String, dynamic> toMap() => {
+    '_id': id != null ? ObjectId.fromHexString(id!) : ObjectId(),
+    'title': title,
+    'description': description,
+    'date': date,
+    'authorId': authorId,
+    'teamId': teamId,
+    'isPublic': isPublic,
+    'category': category,
+  };
+
   factory LogModel.fromMap(Map<String, dynamic> map) {
-    final dynamic rawId = map['_id'] ?? map['id'];
-    final String rawCategory = (map['category'] ?? '').toString().trim();
-    final String normalizedCategory = rawCategory.isEmpty
-        ? 'Pribadi'
-        : rawCategory;
-
     return LogModel(
-      id: rawId is ObjectId ? rawId : null,
-      title: map['title'],
-      date: map['date'],
-      description: map['description'],
-      category: normalizedCategory,
+      id: (map['_id'] as ObjectId?)?.oid,
+      title: map['title'] ?? '',
+      description: map['description'] ?? '',
+      date: map['date'] ?? '',
+      authorId: map['authorId'] ?? 'unknown_user', // Cegah error null
+      teamId: map['teamId'] ?? 'no_team',
+      isPublic: map['isPublic'] as bool? ?? false,
+      category: map['category'] as String? ?? 'Pribadi',
     );
-  }
-
-  // Konversi Object ke Map (JSON) untuk disimpan
-  Map<String, dynamic> toMap() {
-    final map = <String, dynamic>{
-      'title': title,
-      'date': date,
-      'description': description,
-      'category': category,
-    };
-
-    if (id != null) {
-      map['_id'] = id;
-    }
-
-    return map;
   }
 }
