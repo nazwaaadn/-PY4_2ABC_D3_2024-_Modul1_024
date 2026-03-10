@@ -37,7 +37,7 @@ class LogModel {
     required this.authorId,
     required this.teamId,
     this.isPublic = false,
-    this.category = 'Pribadi',
+    this.category = 'Mechanical',
   });
 
   Map<String, dynamic> toMap() => {
@@ -60,7 +60,7 @@ class LogModel {
       authorId: map['authorId'] ?? 'unknown_user', // Cegah error null
       teamId: map['teamId'] ?? 'no_team',
       isPublic: map['isPublic'] as bool? ?? false,
-      category: map['category'] as String? ?? 'Pribadi',
+      category: map['category'] as String? ?? 'Mechanical',
     );
   }
 }

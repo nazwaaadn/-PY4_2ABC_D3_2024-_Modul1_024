@@ -25,13 +25,12 @@ class _LogEditorPageState extends State<LogEditorPage> {
   late TextEditingController _titleController;
   late TextEditingController _descController;
   bool _isPublic = false;
-  String _category = 'Pribadi';
+  String _category = 'Mechanical';
 
   static const List<String> _categories = [
-    'Pribadi',
-    'Kuliah',
-    'Kerja',
-    'Urgent',
+    'Mechanical',
+    'Electronic',
+    'Software',
   ];
   // ─── Palette ───────────────────────────────────────────────────────────────
   final Color primaryNavy = const Color(0xFF00264D);
@@ -46,7 +45,7 @@ class _LogEditorPageState extends State<LogEditorPage> {
       text: widget.log?.description ?? '',
     );
     _isPublic = widget.log?.isPublic ?? false;
-    _category = widget.log?.category ?? 'Pribadi';
+    _category = widget.log?.category ?? 'Mechanical';
 
     // TAMBAHKAN INI: Listener agar Pratinjau terupdate otomatis
     _descController.addListener(() {

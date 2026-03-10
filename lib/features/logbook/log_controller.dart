@@ -80,7 +80,7 @@ class LogController {
     String authorId,
     String teamId, {
     bool isPublic = false,
-    String category = 'Pribadi',
+    String category = 'Mechanical',
   }) async {
     final newLog = LogModel(
       id: ObjectId().oid,

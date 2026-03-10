@@ -5,6 +5,7 @@ import 'package:logbook_app_001/features/logbook/models/log_model.dart';
 import 'package:logbook_app_001/helpers/date_helper.dart';
 import 'package:logbook_app_001/services/access_control_service.dart';
 import 'package:logbook_app_001/features/logbook/log_editor_page.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 class LogView extends StatefulWidget {
   final dynamic currentUser;
@@ -34,14 +35,12 @@ class _LogViewState extends State<LogView> {
   // ─── Helpers ───────────────────────────────────────────────────────────────
   Color _categoryColor(String category) {
     switch (category) {
-      case "Pribadi":
+      case "Electronic":
         return const Color(0xFF1E88E5);
-      case "Kuliah":
+      case "Mechanical":
         return const Color(0xFF43A047);
-      case "Kerja":
+      case "Software":
         return const Color(0xFF8E24AA);
-      case "Urgent":
-        return const Color(0xFFE53935);
       default:
         return const Color(0xFF00264D);
     }
@@ -49,14 +48,12 @@ class _LogViewState extends State<LogView> {
 
   IconData _categoryIcon(String category) {
     switch (category) {
-      case "Pribadi":
+      case "Mechanical":
         return Icons.person_rounded;
-      case "Kuliah":
+      case "Electronic":
         return Icons.school_rounded;
-      case "Kerja":
+      case "Software":
         return Icons.work_rounded;
-      case "Urgent":
-        return Icons.priority_high_rounded;
       default:
         return Icons.label_rounded;
     }
@@ -712,15 +709,19 @@ class _LogViewState extends State<LogView> {
 
                       const SizedBox(height: 8),
 
-                      // Description
-                      Text(
-                        log.description,
-                        maxLines: 4,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
-                          height: 1.4,
+                      SizedBox(
+                        height: 30,
+                        child: Markdown(
+                          data: log.description,
+                          shrinkWrap: true,
+                          padding: EdgeInsets.zero,
+                          styleSheet: MarkdownStyleSheet(
+                            p: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                            ),
+                            pPadding: EdgeInsets.zero,
+                          ),
                         ),
                       ),
                       Text(
