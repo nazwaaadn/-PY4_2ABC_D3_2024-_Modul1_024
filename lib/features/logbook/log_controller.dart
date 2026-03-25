@@ -61,11 +61,18 @@ class LogController {
       final allLocal = box.values.where((l) => l.teamId == teamId).toList();
       logsNotifier.value = allLocal;
 
+      // Jika masih ada pending, status belum sinkron penuh.
+      isOnlineNotifier.value = pendingIds.isEmpty;
+
       await LogHelper.writeLog(
         "SYNC: Data berhasil diperbarui dari Atlas",
         level: 2,
       );
+
+      // Retry pending setiap kali load/refresh saat cloud bisa diakses.
+      await _syncPending(teamId);
     } catch (e) {
+      isOnlineNotifier.value = false;
       await LogHelper.writeLog(
         "OFFLINE: Menggunakan data cache lokal",
         level: 2,
@@ -232,7 +239,16 @@ class LogController {
       final isOnline = results.any((r) => r != ConnectivityResult.none);
       isOnlineNotifier.value = isOnline;
       if (isOnline) {
-        await _syncPending(teamId);
+        try {
+          await _syncPending(teamId);
+        } catch (e) {
+          isOnlineNotifier.value = false;
+          await LogHelper.writeLog(
+            "SYNC WATCH: Gagal sinkronisasi saat online - $e",
+            source: "log_controller.dart",
+            level: 1,
+          );
+        }
       }
     });
   }
@@ -247,7 +263,10 @@ class LogController {
   Future<void> _syncPending(String teamId) async {
     final prefs = await SharedPreferences.getInstance();
     final pendingIds = prefs.getStringList(_pendingKey) ?? [];
-    if (pendingIds.isEmpty) return;
+    if (pendingIds.isEmpty) {
+      isOnlineNotifier.value = true;
+      return;
+    }
 
     final box = Hive.box<LogModel>('offline_logs');
     final synced = <String>[];
@@ -265,12 +284,19 @@ class LogController {
         // upsertLog mencegah duplikasi: insert jika baru, replace jika sudah ada
         await MongoService().upsertLog(log);
         synced.add(id);
-      } catch (_) {}
+      } catch (e) {
+        await LogHelper.writeLog(
+          "SYNC PENDING: Gagal kirim ID $id - $e",
+          source: "log_controller.dart",
+          level: 1,
+        );
+      }
     }
 
     if (synced.isNotEmpty) {
       final remaining = pendingIds.where((id) => !synced.contains(id)).toList();
       await prefs.setStringList(_pendingKey, remaining);
+      isOnlineNotifier.value = remaining.isEmpty;
       // Reload dari cloud agar UI sinkron
       await loadLogs(teamId);
       await LogHelper.writeLog(
@@ -278,7 +304,11 @@ class LogController {
         source: "log_controller.dart",
         level: 2,
       );
+      return;
     }
+
+    // Tidak ada yang berhasil disinkronkan.
+    isOnlineNotifier.value = false;
   }
 
   // ─── Hive & Cloud Sync ──────────────────────────────────────────────────────
